@@ -1,0 +1,19 @@
+git 2fd5fce94f796bd4f1ceaac8544b50d5a4093a72          
+                                                      
+ssh-keygen -t rsa -C "mark.wang1@gmail.com"           
+ssh -T git@github.com                                 
+git config --global user.name "markw11"               
+git config --global user.email "mark.wang1@gmail.com" 
+
+
+git init  
+
+git add .
+git commit -m "init"                    
+                                                                            
+git remote add origin git@github.com:markw11/trade.git
+
+git pull origin master --allow-unrelated-histories
+
+git push -u origin master
+git push origin master
