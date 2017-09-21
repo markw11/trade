@@ -17,3 +17,173 @@ git pull origin master --allow-unrelated-histories
 
 git push -u origin master
 git push origin master
+
+
+
+
+主要发版内容：
+1. 配置文件 /data/properties ; ServiceEJB.jar
+https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/configs/GOME/ReleaseConfig/properties/PRD-HQWEB,PRD-HQJOB,PRD-HQMDB
+https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/configs/GOME/ReleaseConfig/ServiceEJB/PRD-HQWEB,PRD-HQJOB,PRD-HQMDB
+2. JAVA代码   3类应用WEB,JOB,MDB(UAT合在一起，生产环境独立部署) 
+UAT Jenkins(dragonCore_HQDRG)  http://10.126.60.121:8080/jenkins/view/dragoncor_test_1025/job/dragonCore_HQDRG/
+UAT 代码分支 https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/branches/HQDRG
+PRD Jenkins(未创建，是否使用Jenkins？)
+PRD 代码分支 https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/tags/HQDRG
+3. RF枪程序  
+UAT Jenkins(dragonCore_HQDRG_RF)   http://10.126.60.121:8080/jenkins/view/dragoncor_test_1025/job/dragonCore_HQDRG_RF/
+UAT 代码分支 https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/branches/HQDRG
+PRD Jenkins(未创建，是否使用Jenkins？)
+PRD 代码分支 https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/tags/HQDRG/RFApp2
+
+4. oracle数据库脚本 
+
+https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/branches/HQDRG/DragonfxDB/Setup_UAT/   setup_Dragonfx_Database.bat
+
+https://repo.ds.gome.com.cn:8443/svn/dDragonfx/dDragonfx/trunk/doc/1_毕博项目组/30_工程实施/50_上线及运维/环境部署/JBoss数据库密码加密
+
+DRG数据到入HQUAT
+
+
+1.新建dragon用户 useradd -d /app/data dragon      useradd -d /data dragon   chown -R dragon.dragon /data  chown -R dragon.dragon /app
+2.修改密码:passwd dragon
+3.赋予用户权限：chown -R dragon.dragon /app/data/properties/   chown -R dragon.dragon /app/data/deployment/ chown -R dragon.dragon /app/data/libs/ 
+chown -R dragon.dragon /app/data/jboss-4.2.2.GA/server/default/deploy
+chown -R dragon.dragon /app/data/jboss-4.2.2.GA/server/default/lib
+
+chown dragon.dragon /app/data/jrockit1.60_32-R28.zip
+4.修改hosts文件
+vi /etc/hosts 用root用户登录
+新增如下内容：（数据库服务器）
+10.58.46.91      S2SD010-vip
+10.58.46.92      S2SD011-vip
+10.58.46.93      S2SD012-vip
+5.修改配置与主服务器ssh无密码传输 (主服务器如果没有.ssh目录： ssh-keygen -b 1024 -t rsa ; cd ~/.ssh ; mv id_rsa.pub authorized_keys)  yum install openssh-clients
+  新增机器用dragon 用户登录 在 home目录新建 .ssh 目录  su dragon
+  mkdir ~/.ssh
+  
+  登录主服务器 将 传输文件 传输到 新增机器的.ssh 目录下
+  scp ~/.ssh/authorized_keys dragon@10.58.70.113:~/.ssh/
+  scp ~/.ssh/authorized_keys dragon@10.58.62.251:~/.ssh/
+  
+  在新增机器上执行一下授权脚本使之能够进行ssh无密码传输
+  chmod 600 ~/.ssh/authorized_keys
+  chmod 700 ~/.ssh/
+  以上完成 ssh 无密码传输
+6.复制程序文件
+登录主服务器 执行如下脚本
+scp  -r deployment dragon@10.126.53.9:/app/data/
+scp  -r properties dragon@10.58.70.111:/app/data/
+scp  -r properties dragon@10.58.188.68:/app/data/
+scp  -r jboss-4.2.2.GA dragon@10.58.70.111:/app/data/
+scp  -r jboss-4.2.2.GA dragon@10.58.188.69:/app/data/
+scp  -r jrockit1.60_32-R28/ dragon@10.58.70.113:/app/data/
+scp  -r jrrt-3.1.2-1.5.0-64 dragon@10.126.53.9:/data/
+scp  -r template dragon@10.126.53.9:/app/data/
+scp  -r UploadFile dragon@10.126.53.9:/data/
+scp  -r splunk dragon@10.126.53.9:/data/
+scp  -r REL_5_LOG/ dragon@10.126.53.9:/data/
+登录新增服务器
+mkdir DRG_LOG
+mkdir dump
+mkdir log
+mkdir Report
+mkdir properties
+mkdir template
+mkdir UploadFile
+mkdir REL_5_LOG 
+7.修改.bath_profile文件  source .bash_profile
+用dragon用户登陆后 执行
+cd
+vi .bash_profile
+新增如下配置：
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
+
+# User specific environment and startup programs
+
+PATH=$PATH:$HOME/bin
+
+JAVA_HOME=/app/data/jrockit1.60_32-R28
+CLASSPATH=.:$JAVA_HOME/lib.tools.jar
+PATH=$JAVA_HOME/bin:$PATH:$JBOSS_HOME/bin
+export JAVA_HOME CLASSPATH PATH
+JBOSS_HOME=/app/data/jboss-4.2.2.GA
+export JBOSS_HOME PATH
+export JBOSS_USER=dragon
+export LANG=zh_CN.UTF-8
+export PATH
+
+
+ 
+source .bash_profile
+
+export LANG=zh_CN.UTF-8
+
+## MALLOC_ARENA_MAX = CPU 数
+export MALLOC_ARENA_MAX=24 
+
+退出重新登录
+8.修改jboss的ip配置   DefaultPartition=DragonfxServicesApp-9 -Djava.rmi.server.hostname=10.126.53.9
+如下JAVA_OPTS="-Xms4096m -Xmx4096m -Xns1024m  -Djboss.partition.name:DefaultPartition=DragonfxServicesApp-9  -DCONFIG_FILE="/data/properties/Config_CCC_SIT.xml" 
+-Dfxprop=/data/properties -Dapp_env=SIT -Dapp_vm=backend -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
+-Djavax.xml.parsers.SAXParserFactory=com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl -Djavax.xml.soap.MessageFactory=org.apache.axis.soap.MessageFactoryImpl 
+-Duser.timezone=UTC -Dqtz_param="ccc" -Dapp_server=JBOSS  -verbosegc -Dcom.sun.management.jmxremote.port=7091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false 
+-Djava.rmi.server.hostname=10.126.53.9 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/data/dump "
+
+
+/app/data/UploadFile 10.58.0.0/16(insecure,rw,sync,no_root_squash)
+chmod -R 777 /app/data/UploadFile
+service nfs restart
+
+
+mount -t nfs 10.58.188.69:/app/data/UploadFile /app/data/UploadFile
+echo "mount -t nfs 10.58.188.69:/app/data/UploadFile /app/data/UploadFile">>/etc/rc.local
+
+mount -t nfs 10.58.188.69:/app/data/Report /app/data/Report
+echo "mount -t nfs 10.58.188.69:/app/data/Report /app/data/Report">>/etc/rc.local
+
+http://www.linuxidc.com/Linux/2016-08/134022.htm
+http://liuzhigong.blog.163.com/blog/static/17827237520115305226932/
+http://www.2cto.com/os/201305/215679.html
+http://desert3.iteye.com/blog/1675522
+
+
+
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.188.68:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.188.69:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.188.72:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.188.73:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.188.74:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.106:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.107:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.108:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.111:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.112:/app/data/jboss-4.2.2.GA/
+scp  -r /app/data/jboss-4.2.2.GA/bin/ dragon@10.58.70.113:/app/data/jboss-4.2.2.GA/
+
+
+
+
+10.58.188.69:/app/data/UploadFile on /app/data/UploadFile type nfs (rw,addr=10.58.188.69)
+10.58.188.69:/app/data/Report on /app/data/Report type nfs (rw,addr=10.58.188.69)
+
+
+
+
+
+
+添加字体 /usr/share/fonts      sudo fc-cache -fv
+http://jingyan.baidu.com/article/48206aeae78824216ad6b3d5.html
+
+sauser切换root
+sudo su -
+
+ alias ll="ls -l"
+ 
+ ssh -t -p 22 dragon@10.58.52.106 "/data/jetty9.2.1_g3pp_jms/bin/jetty.sh stop"
+ ssh -t -p 22 dragon@10.58.52.106 "/data/jetty9.2.1_g3pp_jms/bin/restartNew.sh"
